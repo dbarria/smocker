@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -143,8 +144,19 @@ func (m *Mocks) GenericHandler(c echo.Context) error {
 	}
 	c.Response().WriteHeader(response.Status)
 
+	var body []byte
+	if response.DecodeBody {
+		body, err = base64.StdEncoding.DecodeString(response.Body)
+		if err != nil {
+			log.WithError(err).Error("Failed to write response body")
+			return echo.NewHTTPError(types.StatusSmockerInternalError, fmt.Sprintf("%s: %v", types.SmockerInternalError, err))
+		}
+	} else {
+		body = []byte(response.Body)
+	}
+
 	// Body
-	if _, err = c.Response().Write([]byte(response.Body)); err != nil {
+	if _, err = c.Response().Write(body); err != nil {
 		log.WithError(err).Error("Failed to write response body")
 		return echo.NewHTTPError(types.StatusSmockerInternalError, fmt.Sprintf("%s: %v", types.SmockerInternalError, err))
 	}
